@@ -11,7 +11,10 @@ import Gnv from './components/layout/Gnv.vue'
   <!-- <MyLayout/> -->
   <!-- <LeafletMap /> -->
   <Gnv />
-  <Map />
+   <div class="container">
+    
+     <Map />
+    </div>
   
 </template>
 

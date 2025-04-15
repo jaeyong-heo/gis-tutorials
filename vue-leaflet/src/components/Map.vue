@@ -17,6 +17,9 @@ onMounted(()=>{
     .map('map')
     .setView([userMarker.value.latitude, userMarker.value.longtitude ], 13);
 
+    // Control options
+    map.zoomControl.remove(); // 줌 컨트롤 제거
+
     leaflet.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -97,10 +100,10 @@ watchEffect(()=>{
 
 <style scoped>
 #map {
-    height: 100%;
-    width: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
+    height: 100vh;
+    width: 100vh;
+    /* position: absolute; */
+    /* top: 0;
+    right: 0; */
 }
 </style>
