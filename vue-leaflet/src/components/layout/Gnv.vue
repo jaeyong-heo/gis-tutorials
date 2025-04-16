@@ -1,5 +1,5 @@
 <template>
-    <div class="space-nav">
+    <div class="">
 
         <BNav>
             <BNavItem active>Active</BNavItem>

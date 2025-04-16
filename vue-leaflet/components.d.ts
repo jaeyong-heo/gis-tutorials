@@ -9,6 +9,9 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     BButton: typeof import('bootstrap-vue-next/components/BButton')['BButton']
+    BCard: typeof import('bootstrap-vue-next/components/BCard')['BCard']
+    BCardGroup: typeof import('bootstrap-vue-next/components/BCard')['BCardGroup']
+    BCardText: typeof import('bootstrap-vue-next/components/BCard')['BCardText']
     BCollapse: typeof import('bootstrap-vue-next/components/BCollapse')['BCollapse']
     BDropdownItem: typeof import('bootstrap-vue-next/components/BDropdown')['BDropdownItem']
     BFormInput: typeof import('bootstrap-vue-next/components/BFormInput')['BFormInput']
@@ -20,6 +23,7 @@ declare module 'vue' {
     BNavForm: typeof import('bootstrap-vue-next/components/BNav')['BNavForm']
     BNavItem: typeof import('bootstrap-vue-next/components/BNav')['BNavItem']
     BNavItemDropdown: typeof import('bootstrap-vue-next/components/BNav')['BNavItemDropdown']
+    copy: typeof import('./src/components/Map copy.vue')['default']
     Gnv: typeof import('./src/components/layout/Gnv.vue')['default']
     HelloWorld: typeof import('./src/components/HelloWorld.vue')['default']
     IconCommunity: typeof import('./src/components/icons/IconCommunity.vue')['default']
@@ -29,6 +33,8 @@ declare module 'vue' {
     IconTooling: typeof import('./src/components/icons/IconTooling.vue')['default']
     LeafletMap: typeof import('./src/components/LeafletMap.vue')['default']
     Map: typeof import('./src/components/Map.vue')['default']
+    Map2: typeof import('./src/components/Map2.vue')['default']
+    MapControll: typeof import('./src/components/layout/MapControll.vue')['default']
     MyLayout: typeof import('./src/components/MyLayout.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
