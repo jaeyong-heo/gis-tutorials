@@ -15,6 +15,21 @@ interface Marker {
     center: [number, number];
     bound:bound
 }
+interface statusControl {
+    status1: boolean,
+    status2: boolean,
+    drawPoint: boolean,
+    drawLine: boolean,
+    drawPolygon: boolean,
+}
+
+const controlStatus = ref<statusControl>({
+    status1: false,
+    status2: false,
+    drawPoint: false,
+    drawLine: false,
+    drawPolygon: false,
+})
 
 export const userMarker = useLocalStorage<Marker>('USER_MARKER', {
     latitude: 0,
@@ -39,7 +54,8 @@ export const useMapStore = defineStore(
 
 
         return {
-            userMK
+            userMK,
+            controlStatus
         }
     },
 );

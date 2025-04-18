@@ -46,59 +46,59 @@ console.log(coords.value.latitude, coords.value.longitude)
 
 onMounted(()=>{
     
-    // map = leaflet
-    // .map('map')
-    // .setView([userMarker.value.latitude, userMarker.value.longtitude ], userMK.value.zoom);
+    map = leaflet
+    .map('map')
+    .setView([userMarker.value.latitude, userMarker.value.longtitude ], userMK.value.zoom);
 
     
     // Control options
-    // map.zoomControl.remove(); // 줌 컨트롤 제거
+    map.zoomControl.remove(); // 줌 컨트롤 제거
 
     // =================================================== 레이어어 적용 ===================================================
-    var littleton = leaflet.marker(makeRandomPosition(userMarker.value.latitude, userMarker.value.longtitude)).bindPopup('This is Littleton, CO.'),
-    denver    = leaflet.marker(makeRandomPosition(userMarker.value.latitude, userMarker.value.longtitude)).bindPopup('This is Denver, CO.'),
-    aurora    = leaflet.marker(makeRandomPosition(userMarker.value.latitude, userMarker.value.longtitude)).bindPopup('This is Aurora, CO.'),
-    golden    = leaflet.marker(makeRandomPosition(userMarker.value.latitude, userMarker.value.longtitude)).bindPopup('This is Golden, CO.');
+    // var littleton = leaflet.marker(makeRandomPosition(userMarker.value.latitude, userMarker.value.longtitude)).bindPopup('This is Littleton, CO.'),
+    // denver    = leaflet.marker(makeRandomPosition(userMarker.value.latitude, userMarker.value.longtitude)).bindPopup('This is Denver, CO.'),
+    // aurora    = leaflet.marker(makeRandomPosition(userMarker.value.latitude, userMarker.value.longtitude)).bindPopup('This is Aurora, CO.'),
+    // golden    = leaflet.marker(makeRandomPosition(userMarker.value.latitude, userMarker.value.longtitude)).bindPopup('This is Golden, CO.');
 
-    var cities = leaflet.layerGroup([littleton, denver, aurora, golden]);
+    // var cities = leaflet.layerGroup([littleton, denver, aurora, golden]);
 
-    var osm = leaflet.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '© OpenStreetMap'
-    });
+    // var osm = leaflet.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    //     maxZoom: 19,
+    //     attribution: '© OpenStreetMap'
+    // });
 
-    var osmHOT = leaflet.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '© OpenStreetMap contributors, Tiles style by Humanitarian OpenStreetMap Team hosted by OpenStreetMap France'});
+    // var osmHOT = leaflet.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+    //     maxZoom: 19,
+    //     attribution: '© OpenStreetMap contributors, Tiles style by Humanitarian OpenStreetMap Team hosted by OpenStreetMap France'});
 
-    map = leaflet.map('map', {
-        center: [userMarker.value.center[0], userMarker.value.center[1]],
-        zoom: 10,
-        layers: [osm, cities]
-    });
+    // map = leaflet.map('map', {
+    //     center: [userMarker.value.center[0], userMarker.value.center[1]],
+    //     zoom: 10,
+    //     layers: [osm, cities]
+    // });
 
-    var baseMaps = {
-        "OpenStreetMap": osm,
-        "OpenStreetMap.HOT": osmHOT
-    };
+    // var baseMaps = {
+    //     "OpenStreetMap": osm,
+    //     "OpenStreetMap.HOT": osmHOT
+    // };
 
-    var overlayMaps = {
-        "Cities": cities
-    };
+    // var overlayMaps = {
+    //     "Cities": cities
+    // };
 
-    var layerControl = leaflet.control.layers(baseMaps, overlayMaps).addTo(map);
+    // var layerControl = leaflet.control.layers(baseMaps, overlayMaps).addTo(map);
     
-    var crownHill = leaflet.marker(makeRandomPosition(userMarker.value.latitude, userMarker.value.longtitude)).bindPopup('This is Crown Hill Park.'),
-        rubyHill = leaflet.marker(makeRandomPosition(userMarker.value.latitude, userMarker.value.longtitude)).bindPopup('This is Ruby Hill Park.');
+    // var crownHill = leaflet.marker(makeRandomPosition(userMarker.value.latitude, userMarker.value.longtitude)).bindPopup('This is Crown Hill Park.'),
+    //     rubyHill = leaflet.marker(makeRandomPosition(userMarker.value.latitude, userMarker.value.longtitude)).bindPopup('This is Ruby Hill Park.');
         
-    var parks = leaflet.layerGroup([crownHill, rubyHill]);
-    var openTopoMap = leaflet.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: 'Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)'
-    });
+    // var parks = leaflet.layerGroup([crownHill, rubyHill]);
+    // var openTopoMap = leaflet.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    //     maxZoom: 19,
+    //     attribution: 'Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)'
+    // });
 
-    layerControl.addBaseLayer(openTopoMap, "OpenTopoMap");
-    layerControl.addOverlay(parks, "Parks");
+    // layerControl.addBaseLayer(openTopoMap, "OpenTopoMap");
+    // layerControl.addOverlay(parks, "Parks");
 
 
     // =================================================== 타일 적용 ===================================================
@@ -109,9 +109,9 @@ onMounted(()=>{
     // }).addTo(map);
 
     // vworld 타일
-    // leaflet.tileLayer('https://xdworld.vworld.kr/2d/Base/service/{z}/{x}/{y}.png', {
-    //     attribution: '© <a href="http://www.vworld.kr/">vworld</a> contributors'
-    // }).addTo(map);
+    leaflet.tileLayer('https://xdworld.vworld.kr/2d/Base/service/{z}/{x}/{y}.png', {
+        attribution: '© <a href="http://www.vworld.kr/">vworld</a> contributors'
+    }).addTo(map);
 
 
     // 줌 변화 감지
@@ -138,42 +138,6 @@ onMounted(()=>{
 
     
     // printSubwayExit()
-
-
-    // =================================================== deck 적용 ===================================================
-    // const gjson = getGeoJsonSample()
-
-    // const deckLayer = new LeafletLayer({
-    // views: [
-    //     new MapView({
-    //         repeat: true
-    //     })
-    // ],
-    // layers: [
-    //     new GeoJsonLayer({
-    //     id: 'airports',
-    //     data: gjson,
-    //     // Styles
-    //     filled: true,
-    //     pointRadiusMinPixels: 2,
-    //     pointRadiusScale: 2000,
-    //     getPointRadius: f => 11 - f.properties.scalerank,
-    //     getFillColor: [200, 0, 80, 180]
-    //     }),
-    //     new ArcLayer({
-    //     id: 'arcs',
-    //     data: AIR_PORTS,
-    //     dataTransform: d => d.features.filter(f => f.properties.scalerank < 4),
-    //     // Styles
-    //     getSourcePosition: f => [-0.4531566, 51.4709959], // London
-    //     getTargetPosition: f => f.geometry.coordinates,
-    //     getSourceColor: [0, 128, 200],
-    //     getTargetColor: [200, 0, 80],
-    //     getWidth: 1
-    //     })
-    // ]
-    // });
-    // map.addLayer(deckLayer);
 
 
     
@@ -231,7 +195,11 @@ const printSeoulDepartment = async () => {
     leaflet.geoJSON(geojson).addTo(map);
     // geojsonLayers
     const seoulLayer = leaflet.geoJSON(geojson, {
-        style: { color: 'blue', weight: 1, fillColor: getColor(geojson.features.properties.adm_cd),},
+        style: { color: 'blue', weight: 1},
+        onEachFeature: (feature, layer) => {
+            const name = feature.properties.adm_nm
+            layer.bindPopup(`<b>${name}</b>`)
+        },
     }).addTo(map)
 
     geojsonLayers.hangjeongdong_seoul = seoulLayer
