@@ -3,6 +3,7 @@
     zoomLevel({{ userMK.zoom }})
     <button @click="info">info</button>
     <button @click="printBound">print bound</button>
+    <input type:number ref="busnum"><button @click="getBus(busnum)">bus</button>
 </template>
 
 <script setup lang="ts">
@@ -18,6 +19,7 @@ import crosswalk from "@/assets/crosswalk.json"
 
 
 
+
 // Values and types.
 import {LeafletLayer} from 'deck.gl-leaflet';
 import DeckGL from '@deck.gl/react';
@@ -28,7 +30,7 @@ import type {DeckGLRef} from '@deck.gl/react';
 import type {GeoJsonLayerProps} from '@deck.gl/layers';
 
 const {userMK, controlStatus} = storeToRefs(useMapStore());
-
+const busnum = ref(0);
 const info =() =>{
     console.log("======== leaflet ======== ")
     console.log(leaflet.version); // 1.9.4
@@ -45,7 +47,7 @@ const { coords, locatedAt, error, resume, pause } = useGeolocation()
 console.log(coords.value.latitude, coords.value.longitude)
 
 onMounted(()=>{
-    
+
     map = leaflet
     .map('map')
     .setView([userMarker.value.latitude, userMarker.value.longtitude ], userMK.value.zoom);
@@ -102,18 +104,11 @@ onMounted(()=>{
 
 
     // =================================================== 타일 적용 ===================================================
-    // 기본 타일
-    // leaflet.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    //     maxZoom: 19,
-    //     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-    // }).addTo(map);
-
-    // vworld 타일
-    leaflet.tileLayer('https://xdworld.vworld.kr/2d/Base/service/{z}/{x}/{y}.png', {
-        attribution: '© <a href="http://www.vworld.kr/">vworld</a> contributors'
+    leaflet.tileLayer(import.meta.env.VITE_TILE_LAYER_URL, {
+        attribution: import.meta.env.VITE_TILE_ATTRIVUTION
     }).addTo(map);
-
-
+    
+    
     // 줌 변화 감지
     map.on('zoomend', () => {
         userMK.value.zoom = map.getZoom()
@@ -167,6 +162,18 @@ function updateBounds() {
     
   }
 
+const getBus = async (busRouteId: number) => {
+    const result = await fetch(`http://localhost:8000/bus-pos?busRouteId=${busRouteId}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+    const bus = result;
+    console.log(`busRouteId: ${busRouteId}`)
+    console.log(bus)
+
+}  
 const printBound = () => {
     const b = map.getBounds()
     console.log(userMarker.value.bound)
