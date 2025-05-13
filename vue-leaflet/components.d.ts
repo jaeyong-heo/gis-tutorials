@@ -36,6 +36,7 @@ declare module 'vue' {
     Map: typeof import('./src/components/Map.vue')['default']
     Map2: typeof import('./src/components/Map2.vue')['default']
     Map3: typeof import('./src/components/Map3.vue')['default']
+    Map4: typeof import('./src/components/Map4.vue')['default']
     MapControll: typeof import('./src/components/layout/MapControll.vue')['default']
     MyLayout: typeof import('./src/components/MyLayout.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

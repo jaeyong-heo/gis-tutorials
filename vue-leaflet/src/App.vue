@@ -11,17 +11,21 @@ import MapControll from './components/layout/MapControll.vue'
 const bypassControlStatus = (val: any) => {
   console.log(val)
 }
-
+const closeController = () => {
+  showSidebar.value = false
+}
+import { ref } from 'vue'
+const showSidebar = ref(false)
 </script>
 
 <template>
   <!-- <Gnv /> -->
-  <div class="container-fluid">
+  <div class="container-fluid" >
     <div class="row">
-      <div class="col-2">
-        <MapControll @control-manage="bypassControlStatus"/>
-      </div>
-      <div class="col-10">
+      <!-- <div :class="showSidebar? 'col-2' : ''" v-if="showSidebar">
+        <MapControll @control-manage="bypassControlStatus" @close-controller="closeController" />
+      </div> -->
+      <div :class="showSidebar?'col-10' : 'col-12'">
         <Map3 />
       
       </div>

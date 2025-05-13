@@ -9,14 +9,16 @@
 <script setup lang="ts">
 import { ref, watch  } from "vue";
 import leaflet, { bounds } from "leaflet"
-import { onMounted, watchEffect } from "vue";
+import "leaflet-draw"
+import "leaflet-draw/dist/leaflet.draw.css"
+import { onMounted, watchEffect, onBeforeMount } from "vue";
 import { useGeolocation } from '@vueuse/core'
 import { userMarker, nearbyMarker, useMapStore } from "@/stores/mapStore"
 import {convertToGeoJSON} from "@/composables/geoJsonConvert.ts"
 import { storeToRefs } from "pinia";
 import crosswalk from "@/assets/crosswalk.json"
 // import hangjeongdong_seoul from "@/assets/hangjeongdong_seoul.geojson"
-
+import * as geojson from "geojson";
 
 
 
@@ -45,69 +47,20 @@ let userGeoMaker: leaflet.Marker;
 let geojsonLayers= {} as any; // { layerName: layerObject }
 const { coords, locatedAt, error, resume, pause } = useGeolocation()
 console.log(coords.value.latitude, coords.value.longitude)
-
+const tileRef = ref();
+const attribution = ref();
+onBeforeMount(() => {
+    tileRef.value = import.meta.env.VITE_TILE_LAYER_URL;
+    attribution.value = import.meta.env.VITE_TILE_ATTRIVUTION;
+})
 onMounted(()=>{
 
     map = leaflet
     .map('map')
     .setView([userMarker.value.latitude, userMarker.value.longtitude ], userMK.value.zoom);
-
     
     // Control options
     map.zoomControl.remove(); // 줌 컨트롤 제거
-
-    // =================================================== 레이어어 적용 ===================================================
-    // var littleton = leaflet.marker(makeRandomPosition(userMarker.value.latitude, userMarker.value.longtitude)).bindPopup('This is Littleton, CO.'),
-    // denver    = leaflet.marker(makeRandomPosition(userMarker.value.latitude, userMarker.value.longtitude)).bindPopup('This is Denver, CO.'),
-    // aurora    = leaflet.marker(makeRandomPosition(userMarker.value.latitude, userMarker.value.longtitude)).bindPopup('This is Aurora, CO.'),
-    // golden    = leaflet.marker(makeRandomPosition(userMarker.value.latitude, userMarker.value.longtitude)).bindPopup('This is Golden, CO.');
-
-    // var cities = leaflet.layerGroup([littleton, denver, aurora, golden]);
-
-    // var osm = leaflet.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    //     maxZoom: 19,
-    //     attribution: '© OpenStreetMap'
-    // });
-
-    // var osmHOT = leaflet.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-    //     maxZoom: 19,
-    //     attribution: '© OpenStreetMap contributors, Tiles style by Humanitarian OpenStreetMap Team hosted by OpenStreetMap France'});
-
-    // map = leaflet.map('map', {
-    //     center: [userMarker.value.center[0], userMarker.value.center[1]],
-    //     zoom: 10,
-    //     layers: [osm, cities]
-    // });
-
-    // var baseMaps = {
-    //     "OpenStreetMap": osm,
-    //     "OpenStreetMap.HOT": osmHOT
-    // };
-
-    // var overlayMaps = {
-    //     "Cities": cities
-    // };
-
-    // var layerControl = leaflet.control.layers(baseMaps, overlayMaps).addTo(map);
-    
-    // var crownHill = leaflet.marker(makeRandomPosition(userMarker.value.latitude, userMarker.value.longtitude)).bindPopup('This is Crown Hill Park.'),
-    //     rubyHill = leaflet.marker(makeRandomPosition(userMarker.value.latitude, userMarker.value.longtitude)).bindPopup('This is Ruby Hill Park.');
-        
-    // var parks = leaflet.layerGroup([crownHill, rubyHill]);
-    // var openTopoMap = leaflet.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-    //     maxZoom: 19,
-    //     attribution: 'Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)'
-    // });
-
-    // layerControl.addBaseLayer(openTopoMap, "OpenTopoMap");
-    // layerControl.addOverlay(parks, "Parks");
-
-
-    // =================================================== 타일 적용 ===================================================
-    leaflet.tileLayer(import.meta.env.VITE_TILE_LAYER_URL, {
-        attribution: import.meta.env.VITE_TILE_ATTRIVUTION
-    }).addTo(map);
-    
     
     // 줌 변화 감지
     map.on('zoomend', () => {
@@ -122,21 +75,86 @@ onMounted(()=>{
         updateBounds()
     })
 
+    console.log("======== leaflet ======== ")
+    console.log(tileRef.value); // 1.9.4
+    console.log(attribution.value);
+    // =================================================== 타일 적용 ===================================================
+    leaflet.tileLayer(import.meta.env.VITE_TILE_LAYER_URL, {
+        attribution: import.meta.env.VITE_TILE_ATTRIVUTION
+    }).addTo(map);
+    
+    
+
     if(userGeoMaker){
         map.removeLayer(userGeoMaker)
     }
+    
+    // 핀 추가
     userGeoMaker  = leaflet.marker([userMarker.value.latitude, userMarker.value.longtitude]).addTo(map).bindPopup("You are here!").openPopup();
+    leaflet.marker([37.58195902773145, 127.01622722048013]).addTo(map).bindPopup("You are here!")
+
 
     const crosswalkGeojson: any = convertToGeoJSON(crosswalk);
     // 횡단보도 geojson 데이터 출력
     // leaflet.geoJSON(crosswalkGeojson).addTo(map);
 
-    
-    // printSubwayExit()
+    var drawItems = new leaflet.FeatureGroup();
+    map.addLayer(drawItems);
+    var drawControl = new leaflet.Control.Draw({
+        edit: {
+            featureGroup: drawItems
+        },
+        position: 'topright',
+        draw: {
+            polygon: {
+                allowIntersection: false,
+                showArea: false,
+                shapeOptions: {
+                    color: '#97009c'
+                }
+            },
+            polyline: {
+                metric: false,
+                shapeOptions: {
+                    color: '#97009c'
+                }
+            },
+            rectangle: {
+                shapeOptions: {
+                    interactive: false
+                }
+            },
+            circle: {
+                shapeOptions: {
+                    interactive: false
+                }
+            },
+            marker: {
+                icon: leaflet.divIcon({
+                    className: 'my-div-icon',
+                    html: '<div style="background-color: red; width: 20px; height: 20px; border-radius: 50%;"></div>',
+                    iconSize: [20, 20]
+                })
+            }
+        }
+    });
+    map.addControl(drawControl);
 
+    map.on(leaflet.Draw.Event.CREATED, (e: any) => {
+        const layer = e.layer;
 
-    
+        // 저장할 도형을 FeatureGroup에 추가
+        drawItems.addLayer(layer);
 
+        // GeoJSON으로 변환
+        const geojsonData = layer.toGeoJSON();
+
+        // 필요시 여러 개 저장할 수 있게 배열에 push
+        console.log("Drawn GeoJSON:", geojsonData);
+
+        // 여기에 저장 로직 (ex. API 호출)
+        // saveDrawnLayer(geojsonData);
+    });
 
 })
 

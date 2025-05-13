@@ -23,8 +23,8 @@
 
             
           </BCardText>
-          
         </BCard>
+        <BButton @click="doCloseController" variant="primary">닫기</BButton>
     </div>
     
 </template>
@@ -33,7 +33,7 @@
 import { storeToRefs } from "pinia";
 import { useMapStore } from "@/stores/mapStore"
 import {ref, defineEmits} from 'vue'
-const emit = defineEmits(['controlManage']);
+const emit = defineEmits(['controlManage', 'closeController']);
 
 const {userMK, controlStatus} = storeToRefs(useMapStore());
 
@@ -41,6 +41,9 @@ const {userMK, controlStatus} = storeToRefs(useMapStore());
 
 const doEmit = () => {
   emit('controlManage', controlStatus.value)
+}
+const doCloseController = () => {
+  emit('closeController')
 }
 </script>
 
