@@ -1,7 +1,12 @@
 import httpx
 from typing import Union
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+import models, schemas
+from sqlalchemy.orm import Session
+from database import get_db
+from utils import geojson_to_geom, geom_to_geojson
+
 app = FastAPI()
 
 app.add_middleware(
@@ -14,6 +19,7 @@ app.add_middleware(
 
 @app.get("/")
 def read_root():
+    print({"Hello": "World"})
     return {"Hello": "World"}
 
 
@@ -35,3 +41,70 @@ async def get_bus_pos(busRouteId: str):
     async with httpx.AsyncClient() as client:
         response = await client.get(url, params=params)
         return response.json()
+    
+
+@app.post("/users/", response_model=schemas.UserOut)
+def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    db_user = models.User(**user.dict())
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user    
+
+@app.post("/geom")
+def create_geom(geom: schemas.Geom, db: Session = Depends(get_db)):
+    try:
+        print(geom)
+        db_feature = models.GeoFeature(
+            name='feature.name',
+            description='feature.description',
+            geom=geojson_to_geom(geom.geom) if geom and geom.geom else None
+        )
+        print('db_feature +++++++')
+        print(db_feature)
+        db.add(db_feature)
+        db.commit()
+        db.refresh(db_feature)
+
+        from shapely.wkb import loads as load_wkb
+        from shapely.geometry import mapping
+        # geometry -> GeoJSON 변환
+        shapely_geom = load_wkb(db_feature.geom.desc)
+        geojson_geom = mapping(shapely_geom)
+
+        return {
+            "id": db_feature.id,
+            "name": db_feature.name,
+            "description": db_feature.description,
+            "geom": geojson_geom,
+        }
+    except Exception as e:
+        print(f"오류 발생: {str(e)}")
+        
+@app.post("/features/")
+def create_feature(feature: schemas.GeoFeatureCreate, db: Session = Depends(get_db)):
+
+    try:
+        db_feature = models.GeoFeature(
+            name=feature.name,
+            description=feature.description,
+            geom=geojson_to_geom(feature.geom) if feature.geom else None,
+        )
+        db.add(db_feature)
+        db.commit()
+        db.refresh(db_feature)
+        return db_feature
+    except Exception as e:
+        print(f"오류 발생: {str(e)}")
+    # convert geom to GeoJSON for response
+    # result = schemas.GeoFeatureOut.from_orm(db_feature)
+    # result.geom = geom_to_geojson(db_feature.geom)
+    # return result
+
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("main:app", host="localhost", port=7000, reload=True)
+    
