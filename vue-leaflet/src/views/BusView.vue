@@ -1,9 +1,10 @@
 <template>
-    <div id="map"></div>
     zoomLevel({{ userMK.zoom }})
     <button @click="info">info</button>
     <button @click="printBound">print bound</button>
-    <input type:number ref="busnum"><button @click="getBus(busnum)">bus</button>
+    <input type:number ref="busnum" value="100100062"><button @click="getBus(busnum)">bus</button>
+    <div id="map"></div>
+    
 </template>
 
 <script setup lang="ts">
@@ -111,8 +112,8 @@ onMounted(()=>{
     }
     
     // 핀 추가
-    userGeoMaker  = leaflet.marker([userMarker.value.latitude, userMarker.value.longtitude]).addTo(map).bindPopup("You are here!").openPopup();
-    leaflet.marker([37.58195902773145, 127.01622722048013]).addTo(map).bindPopup("You are here!")
+    // userGeoMaker  = leaflet.marker([userMarker.value.latitude, userMarker.value.longtitude]).addTo(map).bindPopup("You are here!").openPopup();
+    // leaflet.marker([37.58195902773145, 127.01622722048013]).addTo(map).bindPopup("You are here!")
 
 
     const crosswalkGeojson: any = convertToGeoJSON(crosswalk);
@@ -200,8 +201,9 @@ function updateBounds() {
     userMK.value.bound = bounds;
     
   }
-
+const vehList = ref([]);
 const getBus = async (busRouteId: any) => {
+
     const busNum = Number(busRouteId.value)
     const response = await fetch(`http://localhost:7080/bus-pos?busRouteId=${busNum}`, {
         method: 'GET',
@@ -212,8 +214,23 @@ const getBus = async (busRouteId: any) => {
     const result = await response.json();
     const busList = result?.msgBody?.itemList as BusLocationData[];
 
+    // 마커 지우기
+    
+
     console.log(`busRouteId: ${busNum}`)
     console.log(busList)
+    busList.forEach((bus: BusLocationData) => {
+
+        // const busPos = leaflet.marker([Number(bus.tmX), Number(bus.tmY)], {
+        //     icon: leaflet.divIcon({
+        //         className: 'my-div-icon',
+        //         html: `<div style="background-color: ${getColor(bus.congetion)}; width: 20px; height: 20px; border-radius: 50%;"></div>`,
+        //         iconSize: [20, 20]
+        //     })
+        // }).addTo(map).bindPopup(`차량번호 : ${bus.plainNo} <br> 혼잡도 : ${bus.congetion} <br> 정류소 ID : ${bus.lastStnId}`)
+
+        leaflet.marker([Number(bus.tmX), Number(bus.tmY)]).addTo(map).bindPopup("bus!").openPopup();
+    })
 }  
 
 const printBound = () => {
@@ -312,7 +329,7 @@ watch(
 
 <style scoped>
 #map {
-    height: 100vh;
+    height: 80vh;
     width: 100%;
     /* position: absolute; */
     /* top: 0;

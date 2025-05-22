@@ -30,3 +30,9 @@ class GeoFeatureOut(GeoFeatureBase):
     model_config = {
         "from_attributes": True
     }
+
+
+class GeoJSONFeature(BaseModel):
+    type: str
+    properties: Dict[str, Any]
+    geometry: Geom  

@@ -26,7 +26,8 @@ const showSidebar = ref(false)
         <MapControll @control-manage="bypassControlStatus" @close-controller="closeController" />
       </div> -->
       <div :class="showSidebar?'col-10' : 'col-12'">
-        <Map3 />
+        <!-- <Map3 /> -->
+         <RouterView />
       
       </div>
     </div>
