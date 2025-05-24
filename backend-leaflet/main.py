@@ -8,6 +8,29 @@ from database import get_db
 from utils import geojson_to_geom, geom_to_geojson
 from geoalchemy2.shape import from_shape
 from shapely.geometry import shape
+import service as services
+
+
+from geoalchemy2.shape import to_shape
+from shapely.geometry.base import BaseGeometry
+from typing import Optional, Dict, Any
+from datetime import datetime
+
+def to_geojson_dict(geom) -> Optional[Dict[str, Any]]:
+    if geom is None:
+        return None
+    # WKBElement -> shapely 객체 -> geojson dict
+    shapely_geom: BaseGeometry = to_shape(geom)
+    return shapely_geom.__geo_interface__
+
+def serialize_geo_feature(db_obj) -> dict:
+    return {
+        "id": db_obj.id,
+        "name": db_obj.name,
+        "description": db_obj.description,
+        "geom": to_geojson_dict(db_obj.geom),
+        "created_at": db_obj.created_at.isoformat() if db_obj.created_at else None,
+    }
 
 app = FastAPI()
 
@@ -29,6 +52,7 @@ def read_root():
 def read_item(item_id: int, q: Union[str, None] = None):
     return {"item_id": item_id, "q": q}
 
+
 # 401번 버스 100100062
 @app.get("/bus-pos")
 async def get_bus_pos(busRouteId: str):
@@ -48,10 +72,33 @@ async def get_bus_pos(busRouteId: str):
         return response.json()
     
 
-
-        
-@app.post("/features/")
+# geojson 저장
+"""
+{
+  "name": "My Location",
+  "description": "A point feature example",
+  "geom": {
+    "type": "Point",
+    "coordinates": [127.001, 37.567]
+  }
+}
+"""
+@app.post("/add", response_model=schemas.GeoFeatureCreate, )
 def create_feature(feature: schemas.GeoFeatureCreate, db: Session = Depends(get_db)):
+    return serialize_geo_feature(services.create_feature_service(db, feature))
+
+# geojson 조회
+@app.get("/get", response_model=list[schemas.GeoFeatureOut])
+def get_features(db: Session = Depends(get_db)):
+    db_features = services.get_features_service(db)     
+    # SQLAlchemy + GeoAlchemy2에서 Geometry 타입 컬럼은 쿼리 결과를 WKB (Well-Known Binary) 형태의 WKBElement 객체로 반환합니다.
+    # 이 객체를 GeoJSON 딕셔너리로 변환해야 합니다.
+    # 변환 방법: geoalchemy2.shape.to_shape() 함수로 Shapely 객체로 변환 후 . __geo_interface__ 속성을 이용해 GeoJSON 딕셔너리로 변환
+    return [serialize_geo_feature(f) for f in db_features]
+
+
+@app.post("/features/")
+def create_feature(feature: schemas.GeoFeatureBase, db: Session = Depends(get_db)):
 
     try:
         db_feature = models.GeoFeature(

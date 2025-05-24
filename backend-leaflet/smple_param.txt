@@ -1,0 +1,27 @@
+{
+  "name": "My Location",
+  "description": "A point feature example",
+  "geom": {
+    "type": "Point",
+    "coordinates": [127.001, 37.567]
+  }
+}
+
+
+
+{
+  "name": "Sample Polygon",
+  "description": "This is a sample polygon geometry.",
+  "geom": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [127.0, 37.0],
+        [127.0, 37.1],
+        [127.1, 37.1],
+        [127.1, 37.0],
+        [127.0, 37.0]
+      ]
+    ]
+  }
+}
