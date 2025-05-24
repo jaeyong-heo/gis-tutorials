@@ -135,5 +135,11 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-.backend-leaflet/.venv/
-.backend-leaflet/__pycache__
+# Python 관련
+backend-leaflet/.venv/
+backend-leaflet/__pycache__/
+
+# Node.js 관련 (vue 프로젝트)
+vue-leaflet/node_modules/
+vue-openlayers/node_modules/
+leaflet-deck/node_modules/
