@@ -29,28 +29,20 @@ interface BusLocationData {
 
 
 import { ref, watch  } from "vue";
-import leaflet, { bounds } from "leaflet"
+import leaflet from "leaflet"
 import "leaflet-draw"
 import "leaflet-draw/dist/leaflet.draw.css"
 import { onMounted, watchEffect, onBeforeMount } from "vue";
 import { useGeolocation } from '@vueuse/core'
-import { userMarker, nearbyMarker, useMapStore } from "@/stores/mapStore"
+import { userMarker, useMapStore } from "@/stores/mapStore"
 import {convertToGeoJSON} from "@/composables/geoJsonConvert.ts"
 import { storeToRefs } from "pinia";
 import crosswalk from "@/assets/crosswalk.json"
 // import hangjeongdong_seoul from "@/assets/hangjeongdong_seoul.geojson"
-import * as geojson from "geojson";
-
-
+import {useGeom} from "@/composables/useGeom.ts"
 
 // Values and types.
-import {LeafletLayer} from 'deck.gl-leaflet';
-import DeckGL from '@deck.gl/react';
-import {GeoJsonLayer} from '@deck.gl/layers';
-import {MapView} from '@deck.gl/core';
 // Types only.
-import type {DeckGLRef} from '@deck.gl/react';
-import type {GeoJsonLayerProps} from '@deck.gl/layers';
 
 const {userMK, controlStatus} = storeToRefs(useMapStore());
 const busnum = ref(0);
@@ -174,10 +166,42 @@ onMounted(()=>{
         console.log("Drawn GeoJSON:", geojsonData);
 
         // 여기에 저장 로직 (ex. API 호출)
-        // saveDrawnLayer(geojsonData);
+        saveDrawnLayer(geojsonData);
     });
 
+    getAllGeom();
 })
+
+const getAllGeom = async () => {
+    const response = await useGeom().getGeom();
+    console.log("getAllGeom", response);
+    if(response){
+        response.forEach((item: any) => {
+            const geojson = item.geom;
+            const layer = leaflet.geoJSON(geojson, {
+                style: { color: 'blue', weight: 1 },
+                onEachFeature: (feature, layer) => {
+                    const name = feature?.properties?.name || "Unnamed Feature";
+                    layer.bindPopup(`<b>${name}</b>`);
+                },
+            }).addTo(map);
+            geojsonLayers[item.name] = layer;
+        });
+    }
+}
+const saveDrawnLayer = async (geojsonData: any) => {
+    // 여기에 저장 로직을 구현합니다.
+    console.log("Saving drawn layer:", geojsonData);
+    const wrappedGeojson = {
+        name: 'Drawn Feature',
+        description: 'A feature drawn on the map',
+        geom: geojsonData
+    };
+
+    const add = await useGeom().addGeom(wrappedGeojson)
+    
+    console.log("Saved:", add);
+}
 
 const makeRandomPosition = (lat: number, lng: number): [number, number] =>{
     const latOffset = Math.random() * 0.01 - 0.005; // -0.005 ~ 0.005

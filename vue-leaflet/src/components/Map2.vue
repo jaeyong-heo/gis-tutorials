@@ -109,9 +109,9 @@ onMounted(()=>{
     // }).addTo(map);
 
     // vworld 타일
-    // leaflet.tileLayer('https://xdworld.vworld.kr/2d/Base/service/{z}/{x}/{y}.png', {
-    //     attribution: '© <a href="http://www.vworld.kr/">vworld</a> contributors'
-    // }).addTo(map);
+    leaflet.tileLayer('https://xdworld.vworld.kr/2d/Base/service/{z}/{x}/{y}.png', {
+        attribution: '© <a href="http://www.vworld.kr/">vworld</a> contributors'
+    }).addTo(map);
 
 
     // 줌 변화 감지

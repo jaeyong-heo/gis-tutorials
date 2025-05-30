@@ -11,17 +11,43 @@ import { AmbientLight, PointLight, LightingEffect } from '@deck.gl/core';
 import maplibregl from 'maplibre-gl';
 import { MapView } from '@deck.gl/core';
 import { animate } from 'popmotion';
+import { userMarker, nearbyMarker, useMapStore } from "@/stores/mapStore"
 
 const deckContainer = ref(null);
 
+const tripData = ref([
+  {
+    "waypoints": [
+      { "coordinates": [126.9751, 37.5759], "timestamp": 0 },
+      { "coordinates": [126.9755, 37.5761], "timestamp": 9 },
+      { "coordinates": [126.9768, 37.5763], "timestamp": 54 },
+      { "coordinates": [126.9783, 37.5765], "timestamp": 92 },
+      { "coordinates": [126.9807, 37.5772], "timestamp": 345 },
+      { "coordinates": [126.9819, 37.5768], "timestamp": 402 },
+      { "coordinates": [126.9828, 37.5774], "timestamp": 462 },
+      { "coordinates": [126.9845, 37.5771], "timestamp": 563 },
+      { "coordinates": [126.9869, 37.5776], "timestamp": 880 },
+      { "coordinates": [126.9887, 37.5782], "timestamp": 1070 },
+      { "coordinates": [126.9894, 37.5789], "timestamp": 1117 },
+      { "coordinates": [126.9898, 37.5792], "timestamp": 1120 },
+      { "coordinates": [126.9907, 37.5797], "timestamp": 1127 },
+      { "coordinates": [126.9909, 37.5799], "timestamp": 1130 },
+      { "coordinates": [126.9893, 37.5804], "timestamp": 1166 },
+      { "coordinates": [126.9891, 37.5802], "timestamp": 1176 },
+      { "coordinates": [126.9891, 37.5800], "timestamp": 1181 },
+      { "coordinates": [126.9894, 37.5798], "timestamp": 1186 },
+      { "coordinates": [126.9896, 37.5791], "timestamp": 1200 }
+    ]
+  }
+])
 const DATA_URL = {
-  // BUILDINGS: 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/trips/buildings.json',
   TRIPS: 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/trips/trips-v7.json'
 };
 
 const ambientLight = new AmbientLight({ color: [255, 255, 255], intensity: 1.0 });
 const pointLight = new PointLight({ color: [255, 255, 255], intensity: 2.0, position: [-74.05, 40.7, 8000] });
 const lightingEffect = new LightingEffect({ ambientLight, pointLight });
+
 
 const theme = {
   buildingColor: [74, 80, 87],
@@ -37,8 +63,10 @@ const theme = {
 };
 
 const INITIAL_VIEW_STATE = {
-  longitude: -74,
-  latitude: 40.72,
+  // longitude: -74,
+  // latitude: 40.72,
+  longitude: userMarker.value.longtitude,
+  latitude: userMarker.value.latitude,
   zoom: 13,
   pitch: 45,
   bearing: 0
@@ -57,27 +85,19 @@ let deck;
 let map;
 
 onMounted(async () => {
-  // const buildings = await fetch(DATA_URL.BUILDINGS).then(res => res.json());
-  const trips = await fetch(DATA_URL.TRIPS).then(res => res.json());
+ 
 
-  let time = 0;
+  let time = 1200;
   const trailLength = 180;
   const loopLength = 1800;
   const animationSpeed = 1;
 
   const updateLayers = () => [
-    new PolygonLayer({
-      id: 'ground',
-      data: landCover,
-      getPolygon: f => f,
-      stroked: false,
-      getFillColor: [0, 0, 0, 0]
-    }),
     new TripsLayer({
       id: 'trips',
-      data: trips,
-      getPath: d => d.path,
-      getTimestamps: d => d.timestamps,
+      data: tripData.value,
+      getPath: d => d.waypoints.map(p => p.coordinates),
+      getTimestamps: d => d.waypoints.map(p => p.timestamp),
       getColor: d => (d.vendor === 0 ? theme.trailColor0 : theme.trailColor1),
       opacity: 0.3,
       widthMinPixels: 2,
@@ -86,17 +106,6 @@ onMounted(async () => {
       currentTime: time,
       shadowEnabled: false
     }),
-    // new PolygonLayer({
-    //   id: 'buildings',
-    //   data: buildings,
-    //   extruded: true,
-    //   wireframe: false,
-    //   opacity: 0.5,
-    //   getPolygon: f => f.polygon,
-    //   getElevation: f => f.height,
-    //   getFillColor: theme.buildingColor,
-    //   material: theme.material
-    // })
   ];
 
   deck = new Deck({

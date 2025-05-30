@@ -1,9 +1,10 @@
 <template>
     zoomLevel({{ userMK.zoom }})
-    <button @click="info">info</button>
     <button @click="printBound">print bound</button>
     <input type:number ref="busnum" value="100100062"><button @click="getBus(busnum)">bus</button>
     <div id="map"></div>
+    currentTime: {{ currentTime }}<br>
+    <button @click="startPolling">startPolling</button>
     
 </template>
 
@@ -31,164 +32,122 @@ interface BusLocationData {
 
 import { ref, watch  } from "vue";
 import leaflet, { bounds } from "leaflet"
-import "leaflet-draw"
-import "leaflet-draw/dist/leaflet.draw.css"
 import { onMounted, watchEffect, onBeforeMount } from "vue";
-import { useGeolocation } from '@vueuse/core'
-import { userMarker, nearbyMarker, useMapStore } from "@/stores/mapStore"
-import {convertToGeoJSON} from "@/composables/geoJsonConvert.ts"
+import { timestamp, useGeolocation } from '@vueuse/core'
+import { userMarker, useMapStore } from "@/stores/mapStore"
 import { storeToRefs } from "pinia";
-import crosswalk from "@/assets/crosswalk.json"
-// import hangjeongdong_seoul from "@/assets/hangjeongdong_seoul.geojson"
-import * as geojson from "geojson";
 
-
-
-// Values and types.
 import {LeafletLayer} from 'deck.gl-leaflet';
-import DeckGL from '@deck.gl/react';
-import {GeoJsonLayer} from '@deck.gl/layers';
 import {MapView} from '@deck.gl/core';
-// Types only.
-import type {DeckGLRef} from '@deck.gl/react';
-import type {GeoJsonLayerProps} from '@deck.gl/layers';
+import {Deck} from '@deck.gl/core';
+import {TripsLayer} from '@deck.gl/geo-layers';
+import { animate } from 'popmotion' 
+
+
 
 const {userMK, controlStatus} = storeToRefs(useMapStore());
 const busnum = ref(0);
-const info =() =>{
-    console.log("======== leaflet ======== ")
-    console.log(leaflet.version); // 1.9.4
-    console.log(leaflet);
-    const userMKVar = userMK.value;
-    console.log('userMKVar', userMKVar);
-}
 
-let map: leaflet.Map;
+const map = ref<leaflet.Map | null>(null);
+const markerLayer = ref(leaflet.layerGroup());
+
+// 애니메이션 조절
+const currentTime = ref(100);
+const animationSpeed = ref(10); // 10ms 씩 증가, 조절 가능
+const loopLength = ref(6000);   // 데이터 타임스탬프 범위에 맞춰 설정
+let animationInstance: any = null
+
+const tripData = ref(
+[]
+// [
+//   {
+//     "waypoints": [
+//       { "coordinates": [126.9751, 37.5759], "timestamp": 1554772579000 },
+//       { "coordinates": [126.9755, 37.5761], "timestamp": 1554772579009 },
+//       { "coordinates": [126.9768, 37.5763], "timestamp": 1554772579054 },
+//       { "coordinates": [126.9783, 37.5765], "timestamp": 1554772579092 },
+//       { "coordinates": [126.9807, 37.5772], "timestamp": 1554772579345 },
+//       { "coordinates": [126.9819, 37.5768], "timestamp": 1554772579402 },
+//       { "coordinates": [126.9828, 37.5774], "timestamp": 1554772579462 },
+//       { "coordinates": [126.9845, 37.5771], "timestamp": 1554772579563 },
+//       { "coordinates": [126.9869, 37.5776], "timestamp": 1554772579880 },
+//       { "coordinates": [126.9887, 37.5782], "timestamp": 1554772580070 },
+//       { "coordinates": [126.9894, 37.5789], "timestamp": 1554772580117 },
+//       { "coordinates": [126.9898, 37.5792], "timestamp": 1554772580120 },
+//       { "coordinates": [126.9907, 37.5797], "timestamp": 1554772580127 },
+//       { "coordinates": [126.9909, 37.5799], "timestamp": 1554772580130 },
+//       { "coordinates": [126.9893, 37.5804], "timestamp": 1554772580166 },
+//       { "coordinates": [126.9891, 37.5802], "timestamp": 1554772580176 },
+//       { "coordinates": [126.9891, 37.5800], "timestamp": 1554772580181 },
+//       { "coordinates": [126.9894, 37.5798], "timestamp": 1554772580186 },
+//       { "coordinates": [126.9896, 37.5791], "timestamp": 1554772580200 }
+//     ]
+//   }
+// ]
+)
+
+// featureGroup 
+const featureGroup = ref<leaflet.FeatureGroup>();
 
 let userGeoMaker: leaflet.Marker;
 let geojsonLayers= {} as any; // { layerName: layerObject }
-const { coords, locatedAt, error, resume, pause } = useGeolocation()
+const { coords } = useGeolocation()
 console.log(coords.value.latitude, coords.value.longitude)
 const tileRef = ref();
 const attribution = ref();
+
+const deckLayer = ref<LeafletLayer>();
+const deckInstance = ref();
+
 onBeforeMount(() => {
     tileRef.value = import.meta.env.VITE_TILE_LAYER_URL;
     attribution.value = import.meta.env.VITE_TILE_ATTRIVUTION;
 })
-onMounted(()=>{
-
-    map = leaflet
-    .map('map')
-    .setView([userMarker.value.latitude, userMarker.value.longtitude ], userMK.value.zoom);
-    
-    // Control options
-    map.zoomControl.remove(); // 줌 컨트롤 제거
-    
-    // 줌 변화 감지
-    map.on('zoomend', () => {
-        userMK.value.zoom = map.getZoom()
-    })
-
-    // 지도 이동(팬, 줌 등) 변화 감지
-    map.on('moveend', () => {
-        const c = map.getCenter()
-        userMK.value.center = [c.lat, c.lng]
-        // console.log(`${c.lat}, ${c.lng}`)
-        updateBounds()
-    })
+onMounted(() => {
 
     console.log("======== leaflet ======== ")
-    console.log(tileRef.value); // 1.9.4
-    console.log(attribution.value);
-    // =================================================== 타일 적용 ===================================================
-    leaflet.tileLayer(import.meta.env.VITE_TILE_LAYER_URL, {
-        attribution: import.meta.env.VITE_TILE_ATTRIVUTION
-    }).addTo(map);
-    
-    
+    // leaflet 기본 그리기
+    if(!map.value){ // map이 아직 초기화되지 않았다면
+        map.value = leaflet
+        .map('map')
+        .setView([userMarker.value.latitude, userMarker.value.longtitude], userMK.value.zoom);
 
-    if(userGeoMaker){
-        map.removeLayer(userGeoMaker)
-    }
-    
-    // 핀 추가
-    // userGeoMaker  = leaflet.marker([userMarker.value.latitude, userMarker.value.longtitude]).addTo(map).bindPopup("You are here!").openPopup();
-    // leaflet.marker([37.58195902773145, 127.01622722048013]).addTo(map).bindPopup("You are here!")
+        map.value.zoomControl.remove();
 
+        map.value.on('zoomend', () => {
+            userMK.value.zoom = map.value?.getZoom() ?? userMK.value.zoom;
+        });
 
-    const crosswalkGeojson: any = convertToGeoJSON(crosswalk);
-    // 횡단보도 geojson 데이터 출력
-    // leaflet.geoJSON(crosswalkGeojson).addTo(map);
-
-    var drawItems = new leaflet.FeatureGroup();
-    map.addLayer(drawItems);
-    var drawControl = new leaflet.Control.Draw({
-        edit: {
-            featureGroup: drawItems
-        },
-        position: 'topright',
-        draw: {
-            polygon: {
-                allowIntersection: false,
-                showArea: false,
-                shapeOptions: {
-                    color: '#97009c'
-                }
-            },
-            polyline: {
-                metric: false,
-                shapeOptions: {
-                    color: '#97009c'
-                }
-            },
-            rectangle: {
-                shapeOptions: {
-                    interactive: false
-                }
-            },
-            circle: {
-                shapeOptions: {
-                    interactive: false
-                }
-            },
-            marker: {
-                icon: leaflet.divIcon({
-                    className: 'my-div-icon',
-                    html: '<div style="background-color: red; width: 20px; height: 20px; border-radius: 50%;"></div>',
-                    iconSize: [20, 20]
-                })
+        map.value.on('moveend', () => {
+            const c = map.value?.getCenter();
+            if (c) {
+                userMK.value.center = [c.lat, c.lng];
+                updateBounds();
             }
+        });
+
+        leaflet.tileLayer(tileRef.value, {
+            attribution: attribution.value
+        }).addTo(map.value!);
+
+        
+        if (userGeoMaker) {
+            map.value.removeLayer(userGeoMaker);
         }
-    });
-    map.addControl(drawControl);
+        
+    }
+});
 
-    map.on(leaflet.Draw.Event.CREATED, (e: any) => {
-        const layer = e.layer;
 
-        // 저장할 도형을 FeatureGroup에 추가
-        drawItems.addLayer(layer);
 
-        // GeoJSON으로 변환
-        const geojsonData = layer.toGeoJSON();
 
-        // 필요시 여러 개 저장할 수 있게 배열에 push
-        console.log("Drawn GeoJSON:", geojsonData);
-
-        // 여기에 저장 로직 (ex. API 호출)
-        // saveDrawnLayer(geojsonData);
-    });
-
-})
-
-const makeRandomPosition = (lat: number, lng: number): [number, number] =>{
-    const latOffset = Math.random() * 0.01 - 0.005; // -0.005 ~ 0.005
-    const lngOffset = Math.random() * 0.01 - 0.005; // -0.005 ~ 0.005
-
-    return [lat + latOffset, lng + lngOffset];
-}
 
 function updateBounds() {
-    const b = map.getBounds()
+    const b = map?.value?.getBounds();
+    if (!b) {
+      console.warn("Bounds are undefined.");
+      return;
+    }
     const bounds = {
       northWest: [b.getNorthWest().lat, b.getNorthWest().lng] as [number, number],
       northEast: [b.getNorthEast().lat, b.getNorthEast().lng] as [number, number],
@@ -202,9 +161,10 @@ function updateBounds() {
     
   }
 const vehList = ref([]);
-const getBus = async (busRouteId: any) => {
+const firstBusTime = ref(0);
 
-    const busNum = Number(busRouteId.value)
+const getBus = async (busRouteId: any) => {
+    const busNum = Number(busRouteId)
     const response = await fetch(`http://localhost:7080/bus-pos?busRouteId=${busNum}`, {
         method: 'GET',
         headers: {
@@ -214,42 +174,67 @@ const getBus = async (busRouteId: any) => {
     const result = await response.json();
     const busList = result?.msgBody?.itemList as BusLocationData[];
 
-    // 마커 지우기
-    
-
     console.log(`busRouteId: ${busNum}`)
     console.log(busList)
     busList.forEach((bus: BusLocationData) => {
+        if(firstBusTime.value === 0){
+            firstBusTime.value = new Date(bus.dataTm).getTime();
+        }
 
-        // const busPos = leaflet.marker([Number(bus.tmX), Number(bus.tmY)], {
-        //     icon: leaflet.divIcon({
-        //         className: 'my-div-icon',
-        //         html: `<div style="background-color: ${getColor(bus.congetion)}; width: 20px; height: 20px; border-radius: 50%;"></div>`,
-        //         iconSize: [20, 20]
-        //     })
-        // }).addTo(map).bindPopup(`차량번호 : ${bus.plainNo} <br> 혼잡도 : ${bus.congetion} <br> 정류소 ID : ${bus.lastStnId}`)
+        const existing = tripData.value.find((t: any) => t.vehId === bus.vehId);
 
-        leaflet.marker([Number(bus.tmX), Number(bus.tmY)]).addTo(map).bindPopup("bus!").openPopup();
+        if (existing) {
+            // 기존 vehId가 있으면 waypoints에 push
+            existing.waypoints.push({
+            coordinates: [Number(bus.tmY), Number(bus.tmX)],
+            timestamp
+            });
+        } else {
+            // 없으면 새 객체 추가
+            tripData.value.push({vehId: bus.vehId,coordinates: [Number(bus.tmY), Number(bus.tmX)], timestamp: bus.dataTm  });
+        }
+        
     })
+
+    console.log('-- tripData.value -- ')
+    console.log(tripData.value)
+
+    //////////////// LeafletLayer - TripsLayer /////////////////////////
+    const deckLayer = new LeafletLayer({
+    layers: [
+        new TripsLayer({
+            id: 'TripsLayer',
+            data: tripData.value,
+            getPath: (d: any) => d.waypoints.map((p: { coordinates: [number, number] }) => p.coordinates),
+            getTimestamps: (d: any) => d.waypoints.map((p: { timestamp: number }) => p.timestamp - 1554772579000),
+            getColor: [253, 128, 93],
+            currentTime: 500,
+            trailLength: 600,
+            capRounded: true,
+            jointRounded: true,
+            widthMinPixels: 8
+        })
+    ]
+    });
+    
+    if (map.value) {
+        map.value.removeLayer(deckLayer);
+    }
+    
 }  
 
-const printBound = () => {
-    const b = map.getBounds()
-    console.log(userMarker.value.bound)
-    console.log(typeof userMarker.value.bound)
-    leaflet.polygon(
-        [
-            userMarker.value.bound.northWest,
-            userMarker.value.bound.northEast,
-            userMarker.value.bound.southEast,
-            userMarker.value.bound.southWest,
-        ]
-    , {
-        color: 'green',
-        fillColor: 'gold',
-        fillOpacity: 0.5
-    }).addTo(map);
+let polling = true;
+const startPolling = async () =>{
+  const poll = async () => {
+    if (!polling) return;
+    
+    await getBus('100100062');
+    setTimeout(poll, 10000); // 반복 주기 10000으로 설정
+  };
+  poll();
 }
+
+
 const getGeoJsonSample = async () => {
     const response = await fetch("/src/assets/hangjeongdong_seoul.geojson")
     const geojson = await response.json()
@@ -258,7 +243,7 @@ const getGeoJsonSample = async () => {
 const printSeoulDepartment = async () => {
     const response = await fetch("/src/assets/hangjeongdong_seoul.geojson")
     const geojson = await response.json()
-    leaflet.geoJSON(geojson).addTo(map);
+    leaflet.geoJSON(geojson).addTo(map.value as any);
     // geojsonLayers
     const seoulLayer = leaflet.geoJSON(geojson, {
         style: { color: 'blue', weight: 1},
@@ -266,34 +251,15 @@ const printSeoulDepartment = async () => {
             const name = feature.properties.adm_nm
             layer.bindPopup(`<b>${name}</b>`)
         },
-    }).addTo(map)
+    }).addTo(map.value as leaflet.Map);
 
     geojsonLayers.hangjeongdong_seoul = seoulLayer
     
-    leaflet.control.layers(null,  seoulLayer, { collapsed: false }).addTo(map)
+    leaflet.control.layers(null,  seoulLayer, { collapsed: false }).addTo(map.value as leaflet.Map);
     
 }
 
-const getColor = (val: string) => {
-    const d = Number(val)%5;
-     
-    return d == 0 ? '#800026' :
-           d == 1 ? '#BD0026' :
-           d == 2 ? '#E31A1C' :
-           d == 3 ? '#E31A1C' :
-           '#E31A1C';
-}
 
-const printSubwayExit = async () => {
-    const response:any = await fetch("/src/assets/tnSubwayEntrc.csv")
-    
-    const headers = response.slice(0, response.indexOf("\n")).split(",");
-    const rows = response.slice(response.indexOf("\n") + 1).split("\n");
-
-    console.log(headers)
-    console.log()
-    console.log(rows)
-}
 
 watchEffect(()=>{
     if(coords.value.latitude !== Number.POSITIVE_INFINITY && coords.value.longitude !== Number.POSITIVE_INFINITY){
@@ -310,7 +276,7 @@ watch(
     if(controlStatus.value.status1){
         printSeoulDepartment()
     }else{
-        map.removeLayer(geojsonLayers.hangjeongdong_seoul)
+        map.value.removeLayer(geojsonLayers.hangjeongdong_seoul)
     }
 
 
